@@ -24,6 +24,10 @@ class HarmonicCQT(nn.Module):
 
         self.scqt_instance = scqt.SlidingCqt24()
         self.scqt_instance.init(sr, hop_length)
+        self.hop_length = hop_length
+        self.n_octaves = 7
+        self.n_bins = 24 * self.n_octaves
+
 
         print("RTCQT initialized")
 
@@ -43,27 +47,23 @@ class HarmonicCQT(nn.Module):
             audio_waveforms = audio_waveforms.unsqueeze(1)
 
         batch_size, num_channels, num_samples = audio_waveforms.shape
-        hop_length = 512
-        n_blocks = num_samples // hop_length
-        bins_per_octave = 24
-        n_octaves = 7
-        n_bins = bins_per_octave * n_octaves
+        n_blocks = num_samples // self.hop_length
 
         print(f"Processed shape: {audio_waveforms.shape}")
         print(f"batch_size: {batch_size}, num_channels: {num_channels}, num_samples: {num_samples}")
 
         nd_waveforms = audio_waveforms.cpu().detach().numpy()
 
-        cqt_magnitudes = np.zeros((batch_size, num_channels, n_blocks, n_bins), dtype=np.float32)
+        cqt_magnitudes = np.zeros((batch_size, num_channels, n_blocks, self.n_bins), dtype=np.float32)
 
         for b in range(batch_size):
             for c in range(num_channels):
                 for i_block in range(n_blocks):
-                    block_data = nd_waveforms[b, c, i_block * hop_length: (i_block + 1) * hop_length]
-                    self.scqt_instance.inputBlock(block_data, hop_length)
-                    for i_octave in range(n_octaves):
+                    block_data = nd_waveforms[b, c, i_block * self.hop_length: (i_block + 1) * self.hop_length]
+                    self.scqt_instance.inputBlock(block_data, self.hop_length)
+                    for i_octave in range(self.n_octaves):
                         octave_data = self.scqt_instance.getOctaveValues(i_octave)
-                        cqt_magnitudes[b, c, i_block, i_octave * bins_per_octave : (i_octave + 1) * bins_per_octave] = np.flip(np.abs(octave_data))
+                        cqt_magnitudes[b, c, i_block, i_octave * self.n_bins : (i_octave + 1) * self.n_bins] = np.flip(np.abs(octave_data))
 
         cqt_magnitudes = torch.from_numpy(cqt_magnitudes).to(audio_waveforms.device)
 
