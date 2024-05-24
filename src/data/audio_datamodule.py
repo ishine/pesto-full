@@ -260,5 +260,8 @@ class AudioDataModule(LightningDataModule):
             self.hcqt_sr = sr
             hop_length = int(self.hop_duration * sr / 1000 + 0.5)
             self.hcqt_kernels = HarmonicCQT(sr=sr, hop_length=hop_length, **self.hcqt_kwargs)
+            
+            print(f"SCQT kernels shape: {self.hcqt_kernels(audio).shape}")
+            print(f"SCQT Kernels permuted: {self.hcqt_kernels(audio).squeeze(0).permute(1,0,2,3).shape}")
 
-        return self.hcqt_kernels(audio).squeeze(0).permute(2, 0, 1, 3)  # (time, harmonics, freq_bins, 2)
+        return self.hcqt_kernels(audio).squeeze(0).permute(1, 0, 2, 3)  # (time, harmonics, freq_bins, 2)
