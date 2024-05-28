@@ -34,7 +34,7 @@ class HarmonicCQT(nn.Module):
             audio_waveforms (torch.Tensor): Input audio waveforms of shape (batch_size, num_channels, num_samples)
 
         Returns:
-            torch.Tensor: Harmonic CQT, shape (batch_size, num_channels, num_freqs, num_timesteps)
+            torch.Tensor: Harmonic CQT, shape (num_channels, num_harmonics, num_freqs, num_timesteps, 2)
         """
 
         if len(audio_waveforms.shape) == 1:
@@ -52,7 +52,8 @@ class HarmonicCQT(nn.Module):
             axis=-1
         )
 
-        cqt_magnitudes = np.zeros((batch_size, num_channels, n_blocks, self.n_bins), dtype=np.complex64)
+        cqt_magnitudes = np.zeros((batch_size, num_channels, self.n_bins, n_blocks), dtype=np.complex64)
+        cqt_old = self.cqt(audio_waveforms.cpu())
 
         for b in range(batch_size):
             for c in range(num_channels):
@@ -61,17 +62,11 @@ class HarmonicCQT(nn.Module):
                     self.scqt_instance.inputBlock(block_data, self.hop_length)
                     for i_octave in range(self.n_octaves):
                         octave_data = self.scqt_instance.getOctaveValues(i_octave)
-                        start_idx = i_octave * self.n_bins_per_octave
-                        end_idx = (i_octave + 1) * self.n_bins_per_octave
-                        cqt_magnitudes[b, c, i_block, start_idx:end_idx] = np.flip(octave_data)
+                        start_idx = (self.n_octaves - i_octave - 1) * self.n_bins_per_octave
+                        end_idx = (self.n_octaves - i_octave) * self.n_bins_per_octave
+                        cqt_magnitudes[b, c, start_idx: end_idx, i_block] = octave_data
 
         cqt_magnitudes = torch.from_numpy(cqt_magnitudes)
         cqt_magnitudes = torch.view_as_real(cqt_magnitudes)
-
-        # if cqt_magnitudes.shape[0] == 1:
-        #     cqt_magnitudes = cqt_magnitudes.squeeze(0)
-        # if cqt_magnitudes.shape[0] == 1:
-        #     cqt_magnitudes = cqt_magnitudes.squeeze(0)
-
 
         return cqt_magnitudes
