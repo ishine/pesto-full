@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 class PESTO(LightningModule):
     def __init__(self,
                  encoder: nn.Module,
-                 optimizer: torch.optim.Optimizer,
+                 optimizer: torch.optim.Optimizer | None = None,
                  scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
                  equiv_loss_fn: nn.Module | None = None,
                  sce_loss_fn: nn.Module | None = None,
