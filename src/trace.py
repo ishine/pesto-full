@@ -74,7 +74,7 @@ class PESTO(nn.Module):
     def forward(self,
                 x: torch.Tensor,
                 convert_to_freq: bool = True,
-                return_activations: bool = False):
+                return_activations: bool = True):
         r"""
 
         Args:
@@ -107,7 +107,7 @@ class PESTO(nn.Module):
             preds = 440 * 2 ** ((preds - 69) / 12)
 
         if return_activations:
-            return preds, confidence, activations
+            return preds, activations
 
         return preds  # , confidence
 
@@ -142,11 +142,13 @@ if __name__ == "__main__":
     ckpt_path = sys.argv[1]
 
     model = load_model(ckpt_path)
+    print(model.shift)
 
     frame = torch.randn(1, 1, 168)
 
     traced_script_module = torch.jit.trace(model, frame)
 
+    frame = torch.randn(1, 1, 168)
     output = traced_script_module(frame)
     output_2 = model(frame)
 
